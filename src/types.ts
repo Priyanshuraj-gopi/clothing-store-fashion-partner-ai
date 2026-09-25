@@ -46,4 +46,32 @@ export type Screen =
   | 'saved'
   | 'cart'
   | 'checkout'
-  | 'thanks';
+  | 'thanks'
+  | 'crm';
+
+export type LeadStatus = 'New' | 'Fitting Room' | 'Styling Active' | 'VIP Client' | 'Completed';
+
+export type CustomerRecord = {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  tier: 'Standard' | 'Silver' | 'Gold VIP' | 'Black Diamond';
+  status: LeadStatus;
+  fitProfile: FitProfile;
+  favoriteOccasion: string;
+  favoriteStyle: string;
+  stylistNotes: string;
+  visitCount: number;
+  totalSpend: number;
+  lastVisit: string;
+  fittingRoomAssigned?: string;
+  savedOutfitIds: string[];
+};
+
+export type StoreAssociate = {
+  id: string;
+  name: string;
+  role: 'Stylist Lead' | 'Floor Associate' | 'Store Manager';
+  shiftStatus: 'Active Floor' | 'On Break';
+};

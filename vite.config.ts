@@ -39,22 +39,22 @@ function stylistApi(apiKey: string | undefined, model: string): Plugin {
             model,
             store: false,
             text: { verbosity: 'low' },
-            instructions: `You are Caelus, a concise, warm premium in-store fashion stylist for Vortex Caelus. Give practical, inclusive styling guidance in 2–4 short sentences. You must not claim to measure bodies, diagnose appearance, or reserve stock. Treat all fit details as editable customer preferences. Work only from the supplied style context and say that an associate can verify availability. End with one natural follow-up question when useful.`,
+            instructions: `You are Caelus, an empathetic, concise, expert in-store fashion stylist for the retail brand. Provide practical, inclusive styling guidance in 2–3 brief sentences. Do not diagnose or claim exact medical measurements. Treat fit notes as editable preferences and mention available coordinating pieces in store.`,
             input: JSON.stringify({
               customerMessage: payload.message,
               occasion: payload.occasion,
               styleDirection: payload.style,
               fitPreference: payload.fit,
-              recentConversation: payload.conversation?.slice(-8),
+              recentConversation: payload.conversation?.slice(-6),
               availableStoreCategories: ['tops', 'bottoms', 'one-piece looks', 'shoes', 'accessories'],
             }),
           });
           response.writeHead(200, { 'Content-Type': 'application/json' });
           response.end(JSON.stringify({ message: responseFromModel.output_text }));
         } catch (error) {
-          console.error('Caelus stylist request failed', error);
+          console.error('Stylist API proxy error', error);
           response.writeHead(502, { 'Content-Type': 'application/json' });
-          response.end(JSON.stringify({ error: 'The live stylist could not reply' }));
+          response.end(JSON.stringify({ error: 'The live stylist service could not reply' }));
         }
       });
     },
@@ -64,5 +64,25 @@ function stylistApi(apiKey: string | undefined, model: string): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-  return { plugins: [react(), stylistApi(apiKey, env.OPENAI_MODEL || 'gpt-5.6-terra')] };
+  return {
+    plugins: [react(), stylistApi(apiKey, env.OPENAI_MODEL || 'gpt-4o-mini')],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/framer-motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
+            }
+          },
+        },
+      },
+      chunkSizeWarningLimit: 600,
+    },
+  };
 });

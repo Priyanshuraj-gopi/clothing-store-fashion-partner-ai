@@ -6,13 +6,19 @@ type BrowserRecognition = {
   lang: string;
   start(): void;
   stop(): void;
+  abort(): void;
   onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
   onend: (() => void) | null;
 };
 type BrowserRecognitionConstructor = new () => BrowserRecognition;
 
-declare global { interface Window { webkitSpeechRecognition?: BrowserRecognitionConstructor; SpeechRecognition?: BrowserRecognitionConstructor; } }
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: BrowserRecognitionConstructor;
+    SpeechRecognition?: BrowserRecognitionConstructor;
+  }
+}
 
 export function useSpeechManager() {
   const [muted, setMuted] = useState(false);
@@ -20,40 +26,104 @@ export function useSpeechManager() {
   const recognition = useRef<BrowserRecognition | null>(null);
 
   const stop = useCallback(() => {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    try {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    } catch {
+      // Ignored
+    }
   }, []);
 
-  const speak = useCallback((message: string) => {
-    stop();
-    if (muted || !('speechSynthesis' in window)) return;
-    const utterance = new SpeechSynthesisUtterance(message);
-    utterance.rate = 0.96;
-    utterance.pitch = 1.04;
-    window.speechSynthesis.speak(utterance);
-  }, [muted, stop]);
+  const speak = useCallback(
+    (message: string) => {
+      stop();
+      if (muted || typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+      if (!message.trim()) return;
 
-  const listen = useCallback((onText: (text: string) => void) => {
-    const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Recognition) return false;
-    stop();
-    recognition.current?.stop();
-    const instance = new Recognition();
-    instance.continuous = false;
-    instance.interimResults = false;
-    instance.lang = 'en-IN';
-    instance.onresult = (event) => onText(event.results[0][0].transcript);
-    instance.onerror = () => setListening(false);
-    instance.onend = () => setListening(false);
-    recognition.current = instance;
-    instance.start();
-    setListening(true);
-    return true;
+      try {
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = 0.98;
+        utterance.pitch = 1.02;
+
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(
+          (v) => (v.lang.startsWith('en') && v.name.includes('Natural')) || v.lang === 'en-IN' || v.lang === 'en-US'
+        );
+        if (preferredVoice) utterance.voice = preferredVoice;
+
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        // Silently degrade if speech synthesis unavailable
+      }
+    },
+    [muted, stop]
+  );
+
+  const listen = useCallback(
+    (onText: (text: string) => void) => {
+      if (typeof window === 'undefined') return false;
+      const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+      if (!Recognition) return false;
+
+      stop();
+      try {
+        recognition.current?.abort();
+      } catch {
+        // Ignored
+      }
+
+      try {
+        const instance = new Recognition();
+        instance.continuous = false;
+        instance.interimResults = false;
+        instance.lang = 'en-IN';
+
+        instance.onresult = (event) => {
+          const transcript = event.results?.[0]?.[0]?.transcript;
+          if (transcript) onText(transcript);
+        };
+
+        instance.onerror = () => {
+          setListening(false);
+        };
+
+        instance.onend = () => {
+          setListening(false);
+        };
+
+        recognition.current = instance;
+        instance.start();
+        setListening(true);
+        return true;
+      } catch {
+        setListening(false);
+        return false;
+      }
+    },
+    [stop]
+  );
+
+  useEffect(() => {
+    return () => {
+      stop();
+      try {
+        recognition.current?.abort();
+      } catch {
+        // Ignored
+      }
+    };
   }, [stop]);
 
-  useEffect(() => () => {
-    stop();
-    recognition.current?.stop();
-  }, [stop]);
-
-  return { muted, setMuted, listening, stop, speak, listen, voiceSupported: Boolean(window.SpeechRecognition ?? window.webkitSpeechRecognition) };
+  return {
+    muted,
+    setMuted,
+    listening,
+    stop,
+    speak,
+    listen,
+    voiceSupported:
+      typeof window !== 'undefined' &&
+      Boolean(window.SpeechRecognition ?? window.webkitSpeechRecognition),
+  };
 }

@@ -1,9 +1,27 @@
 {
-  "name": "vortex-caelus",
+  "name": "clothing-store-fashion-partner-ai",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Intelligent retail fashion partner AI with fit analysis, voice stylist, lookbook curation, in-store navigation, and associate CRM.",
   "type": "module",
-  "scripts": { "dev": "vite", "build": "tsc -b && vite build", "preview": "vite preview" },
-  "dependencies": { "@vitejs/plugin-react": "latest", "framer-motion": "latest", "lucide-react": "latest", "openai": "latest", "react": "latest", "react-dom": "latest", "typescript": "latest", "vite": "latest" },
-  "devDependencies": { "@types/node": "latest", "@types/react": "latest", "@types/react-dom": "latest" }
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.16.0",
+    "openai": "^6.20.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.2.0"
+  }
 }
